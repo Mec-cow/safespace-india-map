@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { CityCrime, CrimeCategory } from "@/data/crimes";
@@ -10,15 +10,26 @@ interface Props {
   focus?: { lat: number; lng: number; zoom?: number } | null;
 }
 
-// Free dark style (CARTO via OpenMapTiles-compatible demo). No API key required.
 const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 export function CrimeMap({ cities, category, focus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [webglError, setWebglError] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    try {
+      const c = document.createElement("canvas");
+      if (!(c.getContext("webgl2") || c.getContext("webgl"))) {
+        setWebglError(true);
+        return;
+      }
+    } catch {
+      setWebglError(true);
+      return;
+    }
+    try {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: DARK_STYLE,
