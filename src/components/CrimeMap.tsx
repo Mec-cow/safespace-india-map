@@ -1,33 +1,33 @@
 import { useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import type { CityCrime, CrimeCategory } from "@/data/crimes";
 import { getRatePerLakh } from "@/lib/api";
 
 interface Props {
-  token: string;
   cities: CityCrime[];
   category: CrimeCategory;
   focus?: { lat: number; lng: number; zoom?: number } | null;
 }
 
-export function CrimeMap({ token, cities, category, focus }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+// Free dark style (CARTO via OpenMapTiles-compatible demo). No API key required.
+const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-  // Init map once token available
+export function CrimeMap({ cities, category, focus }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+
   useEffect(() => {
-    if (!token || !containerRef.current || mapRef.current) return;
-    mapboxgl.accessToken = token;
-    const map = new mapboxgl.Map({
+    if (!containerRef.current || mapRef.current) return;
+    const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
-      center: [78.9629, 22.5937], // India
+      style: DARK_STYLE,
+      center: [78.9629, 22.5937],
       zoom: 4,
       attributionControl: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }));
     mapRef.current = map;
 
     map.on("load", () => {
@@ -82,7 +82,7 @@ export function CrimeMap({ token, cities, category, focus }: Props) {
         const f = e.features?.[0];
         if (!f) return;
         const props = f.properties as { name: string; state: string; count: number };
-        new mapboxgl.Popup({ offset: 14, className: "crime-popup" })
+        new maplibregl.Popup({ offset: 14, className: "crime-popup" })
           .setLngLat((f.geometry as GeoJSON.Point).coordinates as [number, number])
           .setHTML(
             `<div style="font-family:inherit"><div style="font-weight:600">${props.name}</div><div style="opacity:.7;font-size:12px">${props.state}</div><div style="margin-top:6px;font-size:13px">Reported: <b>${Number(props.count).toLocaleString()}</b></div></div>`
@@ -95,14 +95,13 @@ export function CrimeMap({ token, cities, category, focus }: Props) {
       map.remove();
       mapRef.current = null;
     };
-  }, [token]);
+  }, []);
 
-  // Update data
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const updateData = () => {
-      const src = map.getSource("crimes") as mapboxgl.GeoJSONSource | undefined;
+      const src = map.getSource("crimes") as maplibregl.GeoJSONSource | undefined;
       if (!src) return;
       const rates = cities.map((c) => getRatePerLakh(c, category));
       const max = Math.max(...rates, 1);
@@ -124,7 +123,6 @@ export function CrimeMap({ token, cities, category, focus }: Props) {
     else map.once("load", updateData);
   }, [cities, category]);
 
-  // Focus
   useEffect(() => {
     if (!mapRef.current || !focus) return;
     mapRef.current.flyTo({ center: [focus.lng, focus.lat], zoom: focus.zoom ?? 10, essential: true });
