@@ -102,10 +102,13 @@ export function CrimeMap({ cities, category, focus }: Props) {
       });
     });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+      return () => {
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch {
+      setWebglError(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -138,6 +141,21 @@ export function CrimeMap({ cities, category, focus }: Props) {
     if (!mapRef.current || !focus) return;
     mapRef.current.flyTo({ center: [focus.lng, focus.lat], zoom: focus.zoom ?? 10, essential: true });
   }, [focus]);
+
+  if (webglError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center p-6 bg-background">
+        <div className="max-w-md text-center bg-card border border-border rounded-2xl p-6 shadow-[var(--shadow-elevated)]">
+          <h2 className="text-lg font-semibold">WebGL is not available</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The map needs WebGL to render. Enable hardware acceleration in your browser
+            settings (e.g. Chrome → Settings → System → "Use graphics acceleration"), or
+            try a different browser/device.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return <div ref={containerRef} className="absolute inset-0" />;
 }
